@@ -1,10 +1,15 @@
 package com.mdconvert.app
 
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
@@ -23,6 +28,17 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private lateinit var toolbar: MaterialToolbar
+    private lateinit var fabShow: FloatingActionButton
+    private lateinit var prefs: SharedPreferences
+
+    private var lastHtml: String? = null
+    private var lastSubtitle: String? = null
+
+    private val autoCopy: Boolean
+        get() = prefs.getBoolean(PREF_AUTO_COPY, false)
+
+    private val noAutoShow: Boolean
+        get() = prefs.getBoolean(PREF_NO_AUTO_SHOW, false)
 
     private val extensions = listOf(
         TablesExtension.create(),
@@ -49,6 +65,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
         toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
 
@@ -56,42 +74,61 @@ class MainActivity : AppCompatActivity() {
         webView.webViewClient = WebViewClient()
         webView.settings.javaScriptEnabled = false
 
-        val fab: FloatingActionButton = findViewById(R.id.fabOpen)
-        fab.setOnClickListener { openFilePicker() }
+        val fabOpen: FloatingActionButton = findViewById(R.id.fabOpen)
+        fabOpen.setOnClickListener { openFilePicker() }
 
         val fabPaste: FloatingActionButton = findViewById(R.id.fabPaste)
         fabPaste.setOnClickListener { pasteFromClipboard() }
 
-        // Handle incoming intent or show welcome
+        fabShow = findViewById(R.id.fabShow)
+        fabShow.setOnClickListener { showLastConversion() }
+
         if (!handleIncomingIntent(intent)) {
             showWelcome()
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        menu.findItem(R.id.action_auto_copy).isChecked = autoCopy
+        menu.findItem(R.id.action_no_auto_show).isChecked = noAutoShow
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_auto_copy -> {
+                item.isChecked = !item.isChecked
+                prefs.edit().putBoolean(PREF_AUTO_COPY, item.isChecked).apply()
+                true
+            }
+            R.id.action_no_auto_show -> {
+                item.isChecked = !item.isChecked
+                prefs.edit().putBoolean(PREF_NO_AUTO_SHOW, item.isChecked).apply()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
         }
     }
 
     private fun handleIncomingIntent(intent: Intent?): Boolean {
         if (intent == null) return false
 
-        // VIEW intent (opened from file manager)
         intent.data?.let { uri ->
             loadMarkdownFile(uri)
             return true
         }
 
-        // SEND intent (share menu)
         if (intent.action == Intent.ACTION_SEND) {
-            // Try stream URI first (file shared via share menu)
             val streamUri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
             if (streamUri != null) {
                 loadMarkdownFile(streamUri)
                 return true
             }
 
-            // Fall back to plain text content
             val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
             if (!sharedText.isNullOrBlank()) {
-                toolbar.subtitle = "Shared text"
-                val html = convertMarkdownToHtml(sharedText)
-                webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+                onConversionReady("Shared text", convertMarkdownToHtml(sharedText))
                 return true
             }
         }
@@ -113,9 +150,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        toolbar.subtitle = "Pasted content"
-        val html = convertMarkdownToHtml(text)
-        webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+        onConversionReady("Pasted content", convertMarkdownToHtml(text))
     }
 
     private fun openFilePicker() {
@@ -132,13 +167,44 @@ class MainActivity : AppCompatActivity() {
             }
 
             val fileName = uri.lastPathSegment ?: "Markdown"
-            toolbar.subtitle = fileName
-
-            val html = convertMarkdownToHtml(markdown)
-            webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+            onConversionReady(fileName, convertMarkdownToHtml(markdown))
         } catch (e: Exception) {
             Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun onConversionReady(subtitle: String, html: String) {
+        lastHtml = html
+        lastSubtitle = subtitle
+
+        if (autoCopy) {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newHtmlText("Converted HTML", html, html))
+            Toast.makeText(this, "HTML copied to clipboard", Toast.LENGTH_SHORT).show()
+        }
+
+        if (noAutoShow) {
+            fabShow.visibility = View.VISIBLE
+            Toast.makeText(this, "Conversion ready \u2014 tap the eye button to view", Toast.LENGTH_SHORT).show()
+        } else {
+            displayHtml(subtitle, html)
+        }
+    }
+
+    private fun showLastConversion() {
+        val html = lastHtml
+        val subtitle = lastSubtitle
+        if (html != null && subtitle != null) {
+            displayHtml(subtitle, html)
+        } else {
+            Toast.makeText(this, "No conversion available", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun displayHtml(subtitle: String, html: String) {
+        toolbar.subtitle = subtitle
+        webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+        fabShow.visibility = View.VISIBLE
     }
 
     private fun convertMarkdownToHtml(markdown: String): String {
@@ -253,5 +319,11 @@ class MainActivity : AppCompatActivity() {
 
         val html = convertMarkdownToHtml(welcomeMd)
         webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+    }
+
+    companion object {
+        private const val PREFS_NAME = "md_convert_prefs"
+        private const val PREF_AUTO_COPY = "auto_copy_html"
+        private const val PREF_NO_AUTO_SHOW = "no_auto_show"
     }
 }
