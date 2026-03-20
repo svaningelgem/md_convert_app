@@ -1,5 +1,6 @@
 package com.mdconvert.app
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.WebView
@@ -56,13 +57,41 @@ class MainActivity : AppCompatActivity() {
         val fab: FloatingActionButton = findViewById(R.id.fabOpen)
         fab.setOnClickListener { openFilePicker() }
 
-        // Show welcome page
-        showWelcome()
-
-        // Handle intent if opened from a file manager
-        intent?.data?.let { uri ->
-            loadMarkdownFile(uri)
+        // Handle incoming intent or show welcome
+        if (!handleIncomingIntent(intent)) {
+            showWelcome()
         }
+    }
+
+    private fun handleIncomingIntent(intent: Intent?): Boolean {
+        if (intent == null) return false
+
+        // VIEW intent (opened from file manager)
+        intent.data?.let { uri ->
+            loadMarkdownFile(uri)
+            return true
+        }
+
+        // SEND intent (share menu)
+        if (intent.action == Intent.ACTION_SEND) {
+            // Try stream URI first (file shared via share menu)
+            val streamUri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+            if (streamUri != null) {
+                loadMarkdownFile(streamUri)
+                return true
+            }
+
+            // Fall back to plain text content
+            val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+            if (!sharedText.isNullOrBlank()) {
+                toolbar.subtitle = "Shared text"
+                val html = convertMarkdownToHtml(sharedText)
+                webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
+                return true
+            }
+        }
+
+        return false
     }
 
     private fun openFilePicker() {
