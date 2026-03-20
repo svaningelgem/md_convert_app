@@ -1,5 +1,7 @@
 package com.mdconvert.app
 
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -57,6 +59,9 @@ class MainActivity : AppCompatActivity() {
         val fab: FloatingActionButton = findViewById(R.id.fabOpen)
         fab.setOnClickListener { openFilePicker() }
 
+        val fabPaste: FloatingActionButton = findViewById(R.id.fabPaste)
+        fabPaste.setOnClickListener { pasteFromClipboard() }
+
         // Handle incoming intent or show welcome
         if (!handleIncomingIntent(intent)) {
             showWelcome()
@@ -92,6 +97,25 @@ class MainActivity : AppCompatActivity() {
         }
 
         return false
+    }
+
+    private fun pasteFromClipboard() {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = clipboard.primaryClip
+        if (clip == null || clip.itemCount == 0) {
+            Toast.makeText(this, "Clipboard is empty", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val text = clip.getItemAt(0).coerceToText(this).toString()
+        if (text.isBlank()) {
+            Toast.makeText(this, "Clipboard has no text", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        toolbar.subtitle = "Pasted content"
+        val html = convertMarkdownToHtml(text)
+        webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
     }
 
     private fun openFilePicker() {
