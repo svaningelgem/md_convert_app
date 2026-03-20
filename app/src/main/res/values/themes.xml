@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MDConvert" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">#1a237e</item>
+        <item name="colorPrimaryVariant">#000051</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorSecondary">#1565c0</item>
+        <item name="colorSecondaryVariant">#003c8f</item>
+        <item name="colorOnSecondary">@android:color/white</item>
+        <item name="floatingActionButtonStyle">@style/Widget.App.FAB</item>
+    </style>
+
+    <style name="Widget.App.FAB" parent="Widget.Material3.FloatingActionButton.Primary">
+        <item name="backgroundTint">@color/fab_bg</item>
+    </style>
+</resources>
