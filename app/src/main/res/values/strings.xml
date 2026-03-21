@@ -3,7 +3,7 @@
     <string name="app_name">MD Convert</string>
     <string name="open_file">Open Markdown file</string>
     <string name="paste_clipboard">Paste from clipboard</string>
-    <string name="show_last">Show last conversion</string>
-    <string name="setting_auto_copy">Auto-copy HTML to clipboard</string>
-    <string name="setting_no_auto_show">Don\'t auto-show result</string>
+    <string name="toggle_view">Toggle raw/rendered view</string>
+    <string name="copy_html">Copy HTML to clipboard</string>
+    <string name="setting_auto_copy">Auto-copy HTML on conversion</string>
 </resources>

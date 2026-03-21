@@ -6,10 +6,25 @@ An Android app that converts Markdown files to beautifully styled HTML.
 
 - **Open Markdown files** from your device's file manager
 - **Paste from clipboard** to quickly convert markdown text
+- **Toggle view** — switch between rendered HTML and raw markdown with the eye button
+- **Copy HTML** — one-tap copy of converted HTML to clipboard
 - **Share menu integration** — share `.md` files or text from any app
-- **Auto-copy HTML** to clipboard (optional)
-- **Deferred viewing** — convert now, view later (optional)
+- **Auto-copy HTML** on conversion (optional setting)
+- **Auto-restore** — reopens your last file on startup; shows nothing if the file was removed
+- **Welcome guide** — bundled markdown file on first launch to explore features immediately
 - **GFM support** — tables, task lists, strikethrough, autolinks
+
+### FAB Layout
+
+The app has four floating action buttons arranged in two groups:
+
+| Group    | Button    | Icon      | Action                           |
+|----------|-----------|-----------|----------------------------------|
+| Bottom   | Open      | +         | Open a markdown file             |
+| Bottom   | Paste     | Clipboard | Paste markdown from clipboard    |
+| *(gap)*  |           |           |                                  |
+| Top      | Toggle    | Eye       | Switch between HTML and raw view |
+| Top      | Copy      | Copy      | Copy HTML to clipboard           |
 
 ### Supported Markdown Elements
 
@@ -43,15 +58,30 @@ Single-activity Android app built with:
 ### Project Structure
 
 ```
-app/src/main/java/com/mdconvert/app/
-├── MainActivity.kt       # Main UI, file handling, clipboard, intents
-└── MarkdownConverter.kt   # Markdown-to-HTML conversion logic
+app/src/main/
+├── assets/
+│   └── welcome.md              # Bundled welcome markdown shown on first launch
+├── java/com/mdconvert/app/
+│   ├── MainActivity.kt         # UI, file handling, clipboard, intents, state persistence
+│   └── MarkdownConverter.kt    # Markdown-to-HTML conversion logic
+└── res/
+    ├── drawable/                # Vector icons (add, paste, visibility, copy, code)
+    ├── layout/activity_main.xml # CoordinatorLayout with WebView and 4 FABs
+    ├── menu/menu_main.xml       # Settings menu (auto-copy toggle)
+    └── values/                  # Colors, strings, themes
 ```
 
 ### Key Classes
 
 - **`MarkdownConverter`** — Stateless converter that parses markdown using CommonMark with extensions (tables, strikethrough, autolinks, task lists) and wraps the output in a styled HTML template.
-- **`MainActivity`** — Handles the UI lifecycle, file picker, clipboard paste, share intent reception, settings (auto-copy, deferred viewing), and displays converted HTML in a WebView.
+- **`MainActivity`** — Handles the UI lifecycle, file picker, clipboard paste/copy, share intent reception, raw/HTML view toggle, state persistence across launches, and displays content in a WebView.
+
+### Startup Flow
+
+1. **First launch** — loads `welcome.md` from assets so users can immediately explore features
+2. **Subsequent launches** — restores the last loaded file by re-reading from its URI
+3. **File removed** — if the previously loaded file is no longer accessible, shows a blank screen and clears persisted state
+4. **Pasted/shared content** — restored from saved markdown text (no URI needed)
 
 ## Building
 
@@ -88,12 +118,14 @@ See [`.github/workflows/android-ci.yml`](.github/workflows/android-ci.yml).
 
 ## Configuration
 
-The app stores two settings in SharedPreferences (`md_convert_prefs`):
+The app stores settings and state in SharedPreferences (`md_convert_prefs`):
 
-| Setting           | Key              | Default | Description                              |
-|-------------------|------------------|---------|------------------------------------------|
-| Auto-copy HTML    | `auto_copy_html` | `false` | Copy converted HTML to clipboard automatically |
-| Don't auto-show   | `no_auto_show`   | `false` | Defer showing the result until the eye button is tapped |
+| Key              | Type    | Default | Description                              |
+|------------------|---------|---------|------------------------------------------|
+| `auto_copy_html` | Boolean | `false` | Auto-copy HTML to clipboard on conversion |
+| `last_source_uri`| String  | `null`  | URI of last loaded file (for auto-restore) |
+| `last_markdown`  | String  | `null`  | Raw markdown of last conversion           |
+| `last_subtitle`  | String  | `null`  | Display name of last conversion           |
 
 ## Sample File
 

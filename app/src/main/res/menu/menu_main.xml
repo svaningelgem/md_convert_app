@@ -7,10 +7,4 @@
         android:title="@string/setting_auto_copy"
         android:checkable="true"
         app:showAsAction="never" />
-
-    <item
-        android:id="@+id/action_no_auto_show"
-        android:title="@string/setting_no_auto_show"
-        android:checkable="true"
-        app:showAsAction="never" />
 </menu>
