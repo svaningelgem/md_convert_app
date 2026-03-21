@@ -11,6 +11,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -66,7 +67,7 @@ class MainActivity : AppCompatActivity() {
         fabToggle.setOnClickListener { toggleView() }
 
         fabCopy = findViewById(R.id.fabCopy)
-        fabCopy.setOnClickListener { copyHtmlToClipboard() }
+        fabCopy.setOnClickListener { showCopyMenu() }
 
         if (!handleIncomingIntent(intent)) {
             restoreOrShowWelcome()
@@ -195,16 +196,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    internal fun copyHtmlToClipboard() {
-        val html = currentHtml
-        if (html == null) {
+    internal fun showCopyMenu() {
+        if (currentMarkdown == null) {
             Toast.makeText(this, "Nothing to copy", Toast.LENGTH_SHORT).show()
             return
         }
 
+        val popup = PopupMenu(this, fabCopy)
+        popup.menu.add(0, MENU_COPY_RICH, 0, "Copy as rich text")
+        popup.menu.add(0, MENU_COPY_HTML, 1, "Copy HTML source")
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                MENU_COPY_RICH -> { copyAsRichText(); true }
+                MENU_COPY_HTML -> { copyHtmlSource(); true }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
+    internal fun copyAsRichText() {
+        val markdown = currentMarkdown ?: return
+        val bodyHtml = converter.renderBodyOnly(markdown)
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newHtmlText("Converted HTML", html, html))
-        Toast.makeText(this, "HTML copied to clipboard", Toast.LENGTH_SHORT).show()
+        clipboard.setPrimaryClip(ClipData.newHtmlText("Converted HTML", markdown, bodyHtml))
+        Toast.makeText(this, "Rich text copied", Toast.LENGTH_SHORT).show()
+    }
+
+    internal fun copyHtmlSource() {
+        val html = currentHtml ?: return
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("HTML source", html))
+        Toast.makeText(this, "HTML source copied", Toast.LENGTH_SHORT).show()
     }
 
     internal fun displayHtml(subtitle: String, html: String) {
@@ -314,5 +337,7 @@ class MainActivity : AppCompatActivity() {
         internal const val PREF_LAST_URI = "last_source_uri"
         internal const val PREF_LAST_MARKDOWN = "last_markdown"
         internal const val PREF_LAST_SUBTITLE = "last_subtitle"
+        private const val MENU_COPY_RICH = 1
+        private const val MENU_COPY_HTML = 2
     }
 }

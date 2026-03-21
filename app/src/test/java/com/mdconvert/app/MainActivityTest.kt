@@ -245,31 +245,81 @@ class MainActivityTest {
         }
     }
 
-    // -- copyHtmlToClipboard --
+    // -- showCopyMenu --
 
     @Test
-    fun `copyHtmlToClipboard copies HTML to clipboard`() {
+    fun `showCopyMenu shows toast when nothing to copy`() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                activity.currentMarkdown = null
+                activity.showCopyMenu()
+                assertEquals("Nothing to copy", ShadowToast.getTextOfLatestToast())
+            }
+        }
+    }
+
+    // -- copyAsRichText --
+
+    @Test
+    fun `copyAsRichText copies body HTML with markdown as plain text`() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 activity.onConversionReady("test.md", "# Hello", null)
-                activity.copyHtmlToClipboard()
+                activity.copyAsRichText()
 
                 val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val clipHtml = clipboard.primaryClip?.getItemAt(0)?.htmlText
-                assertNotNull(clipHtml)
-                assertTrue(clipHtml!!.contains("<h1>Hello</h1>"))
-                assertEquals("HTML copied to clipboard", ShadowToast.getTextOfLatestToast())
+                val clip = clipboard.primaryClip?.getItemAt(0)
+                assertNotNull(clip)
+                // HTML part has rendered body (no DOCTYPE wrapper)
+                val htmlText = clip!!.htmlText
+                assertTrue(htmlText.contains("<h1>Hello</h1>"))
+                assertFalse(htmlText.contains("<!DOCTYPE"))
+                // Plain text part is the original markdown
+                val plainText = clip.text.toString()
+                assertTrue(plainText.contains("# Hello"))
+                assertEquals("Rich text copied", ShadowToast.getTextOfLatestToast())
             }
         }
     }
 
     @Test
-    fun `copyHtmlToClipboard shows toast when nothing to copy`() {
+    fun `copyAsRichText does nothing when no markdown`() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                activity.currentMarkdown = null
+                activity.copyAsRichText()
+                // No crash, no toast
+            }
+        }
+    }
+
+    // -- copyHtmlSource --
+
+    @Test
+    fun `copyHtmlSource copies full HTML as plain text`() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                activity.onConversionReady("test.md", "**bold**", null)
+                activity.copyHtmlSource()
+
+                val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = clipboard.primaryClip?.getItemAt(0)
+                assertNotNull(clip)
+                val text = clip!!.text.toString()
+                assertTrue(text.contains("<!DOCTYPE html>"))
+                assertTrue(text.contains("<strong>bold</strong>"))
+                assertEquals("HTML source copied", ShadowToast.getTextOfLatestToast())
+            }
+        }
+    }
+
+    @Test
+    fun `copyHtmlSource does nothing when no html`() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 activity.currentHtml = null
-                activity.copyHtmlToClipboard()
-                assertEquals("Nothing to copy", ShadowToast.getTextOfLatestToast())
+                activity.copyHtmlSource()
+                // No crash, no toast
             }
         }
     }
@@ -514,16 +564,13 @@ class MainActivityTest {
     }
 
     @Test
-    fun `fabCopy click copies HTML`() {
+    fun `fabCopy click shows copy menu`() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
-                activity.onConversionReady("test.md", "**bold**", null)
+                // With no content, should show toast
+                activity.currentMarkdown = null
                 activity.findViewById<FloatingActionButton>(R.id.fabCopy).performClick()
-
-                val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val clipHtml = clipboard.primaryClip?.getItemAt(0)?.htmlText
-                assertNotNull(clipHtml)
-                assertTrue(clipHtml!!.contains("<strong>bold</strong>"))
+                assertEquals("Nothing to copy", ShadowToast.getTextOfLatestToast())
             }
         }
     }
