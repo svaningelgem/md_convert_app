@@ -382,24 +382,6 @@ class MainActivityTest {
     }
 
     @Test
-    fun `onConversionReady with autoCopy copies to clipboard`() {
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            scenario.onActivity { activity ->
-                val prefs = activity.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
-                prefs.edit().putBoolean(MainActivity.PREF_AUTO_COPY, true).commit()
-
-                activity.onConversionReady("test.md", "# Copied", null)
-
-                val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                val clipHtml = clipboard.primaryClip?.getItemAt(0)?.htmlText
-                assertNotNull(clipHtml)
-                assertTrue(clipHtml!!.contains("<h1>Copied</h1>"))
-                assertEquals("HTML copied to clipboard", ShadowToast.getTextOfLatestToast())
-            }
-        }
-    }
-
-    @Test
     fun `onConversionReady persists state`() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
@@ -493,28 +475,6 @@ class MainActivityTest {
                 assertNull(prefs.getString(MainActivity.PREF_LAST_SUBTITLE, null))
                 assertNull(prefs.getString(MainActivity.PREF_LAST_MARKDOWN, null))
                 assertNull(prefs.getString(MainActivity.PREF_LAST_URI, null))
-            }
-        }
-    }
-
-    // -- Menu --
-
-    @Test
-    fun `onCreateOptionsMenu returns true`() {
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            scenario.onActivity { activity ->
-                assertTrue(activity.onCreateOptionsMenu(
-                    activity.findViewById<MaterialToolbar>(R.id.toolbar).menu
-                ))
-            }
-        }
-    }
-
-    @Test
-    fun `autoCopy defaults to false`() {
-        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            scenario.onActivity { activity ->
-                assertFalse(activity.autoCopy)
             }
         }
     }

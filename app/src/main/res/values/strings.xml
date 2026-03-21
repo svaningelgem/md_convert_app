@@ -5,5 +5,4 @@
     <string name="paste_clipboard">Paste from clipboard</string>
     <string name="toggle_view">Toggle raw/rendered view</string>
     <string name="copy_html">Copy HTML to clipboard</string>
-    <string name="setting_auto_copy">Auto-copy HTML on conversion</string>
 </resources>

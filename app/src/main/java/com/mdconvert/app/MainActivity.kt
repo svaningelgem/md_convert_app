@@ -7,8 +7,6 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.PopupMenu
@@ -34,9 +32,6 @@ class MainActivity : AppCompatActivity() {
     internal var currentSourceUri: String? = null
     internal var showingRawMarkdown = false
     internal var isWelcomeContent = false
-
-    internal val autoCopy: Boolean
-        get() = prefs.getBoolean(PREF_AUTO_COPY, false)
 
     private val openFileLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -71,23 +66,6 @@ class MainActivity : AppCompatActivity() {
 
         if (!handleIncomingIntent(intent)) {
             restoreOrShowWelcome()
-        }
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_main, menu)
-        menu.findItem(R.id.action_auto_copy).isChecked = autoCopy
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_auto_copy -> {
-                item.isChecked = !item.isChecked
-                prefs.edit().putBoolean(PREF_AUTO_COPY, item.isChecked).apply()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
         }
     }
 
@@ -172,13 +150,6 @@ class MainActivity : AppCompatActivity() {
         isWelcomeContent = false
 
         persistState(subtitle, markdown, sourceUri)
-
-        if (autoCopy) {
-            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            clipboard.setPrimaryClip(ClipData.newHtmlText("Converted HTML", html, html))
-            Toast.makeText(this, "HTML copied to clipboard", Toast.LENGTH_SHORT).show()
-        }
-
         displayHtml(subtitle, html)
     }
 
@@ -333,7 +304,6 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         internal const val PREFS_NAME = "md_convert_prefs"
-        internal const val PREF_AUTO_COPY = "auto_copy_html"
         internal const val PREF_LAST_URI = "last_source_uri"
         internal const val PREF_LAST_MARKDOWN = "last_markdown"
         internal const val PREF_LAST_SUBTITLE = "last_subtitle"

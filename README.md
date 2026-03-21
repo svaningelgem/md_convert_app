@@ -9,7 +9,7 @@ An Android app that converts Markdown files to beautifully styled HTML.
 - **Toggle view** — switch between rendered HTML and raw markdown with the eye button
 - **Copy HTML** — one-tap copy of converted HTML to clipboard
 - **Share menu integration** — share `.md` files or text from any app
-- **Auto-copy HTML** on conversion (optional setting)
+- **Copy menu** — copy as rich text (for Gmail, Docs) or as HTML source
 - **Auto-restore** — reopens your last file on startup; shows nothing if the file was removed
 - **Welcome guide** — bundled markdown file on first launch to explore features immediately
 - **GFM support** — tables, task lists, strikethrough, autolinks
@@ -67,14 +67,14 @@ app/src/main/
 └── res/
     ├── drawable/                # Vector icons (add, paste, visibility, copy, code)
     ├── layout/activity_main.xml # CoordinatorLayout with WebView and 4 FABs
-    ├── menu/menu_main.xml       # Settings menu (auto-copy toggle)
+    ├── menu/                    # (none — all actions via FABs)
     └── values/                  # Colors, strings, themes
 ```
 
 ### Key Classes
 
 - **`MarkdownConverter`** — Stateless converter that parses markdown using CommonMark with extensions (tables, strikethrough, autolinks, task lists) and wraps the output in a styled HTML template.
-- **`MainActivity`** — Handles the UI lifecycle, file picker, clipboard paste/copy, share intent reception, raw/HTML view toggle, state persistence across launches, and displays content in a WebView.
+- **`MainActivity`** — Handles the UI lifecycle, file picker, clipboard paste, copy menu (rich text / HTML source), share intent reception, raw/HTML view toggle, state persistence across launches, and displays content in a WebView.
 
 ### Startup Flow
 
@@ -116,16 +116,15 @@ A GitHub Actions workflow runs on every pull request:
 
 See [`.github/workflows/android-ci.yml`](.github/workflows/android-ci.yml).
 
-## Configuration
+## Persisted State
 
-The app stores settings and state in SharedPreferences (`md_convert_prefs`):
+The app stores state in SharedPreferences (`md_convert_prefs`):
 
-| Key              | Type    | Default | Description                              |
-|------------------|---------|---------|------------------------------------------|
-| `auto_copy_html` | Boolean | `false` | Auto-copy HTML to clipboard on conversion |
-| `last_source_uri`| String  | `null`  | URI of last loaded file (for auto-restore) |
-| `last_markdown`  | String  | `null`  | Raw markdown of last conversion           |
-| `last_subtitle`  | String  | `null`  | Display name of last conversion           |
+| Key              | Type   | Default | Description                              |
+|------------------|--------|---------|------------------------------------------|
+| `last_source_uri`| String | `null`  | URI of last loaded file (for auto-restore) |
+| `last_markdown`  | String | `null`  | Raw markdown of last conversion           |
+| `last_subtitle`  | String | `null`  | Display name of last conversion           |
 
 ## Sample File
 
