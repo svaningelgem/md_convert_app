@@ -17,13 +17,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import org.commonmark.ext.autolink.AutolinkExtension
-import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension
-import org.commonmark.ext.gfm.tables.TablesExtension
-import org.commonmark.ext.task.list.items.TaskListItemsExtension
-import org.commonmark.parser.Parser
-import org.commonmark.renderer.html.HtmlRenderer
-
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
@@ -31,29 +24,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var fabShow: FloatingActionButton
     private lateinit var prefs: SharedPreferences
 
-    private var lastHtml: String? = null
-    private var lastSubtitle: String? = null
+    internal var lastHtml: String? = null
+    internal var lastSubtitle: String? = null
 
-    private val autoCopy: Boolean
+    internal val converter = MarkdownConverter()
+
+    internal val autoCopy: Boolean
         get() = prefs.getBoolean(PREF_AUTO_COPY, false)
 
-    private val noAutoShow: Boolean
+    internal val noAutoShow: Boolean
         get() = prefs.getBoolean(PREF_NO_AUTO_SHOW, false)
-
-    private val extensions = listOf(
-        TablesExtension.create(),
-        StrikethroughExtension.create(),
-        AutolinkExtension.create(),
-        TaskListItemsExtension.create(),
-    )
-
-    private val parser: Parser = Parser.builder()
-        .extensions(extensions)
-        .build()
-
-    private val renderer: HtmlRenderer = HtmlRenderer.builder()
-        .extensions(extensions)
-        .build()
 
     private val openFileLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -111,7 +91,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun handleIncomingIntent(intent: Intent?): Boolean {
+    internal fun handleIncomingIntent(intent: Intent?): Boolean {
         if (intent == null) return false
 
         intent.data?.let { uri ->
@@ -128,7 +108,7 @@ class MainActivity : AppCompatActivity() {
 
             val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
             if (!sharedText.isNullOrBlank()) {
-                onConversionReady("Shared text", convertMarkdownToHtml(sharedText))
+                onConversionReady("Shared text", converter.convertMarkdownToHtml(sharedText))
                 return true
             }
         }
@@ -136,7 +116,7 @@ class MainActivity : AppCompatActivity() {
         return false
     }
 
-    private fun pasteFromClipboard() {
+    internal fun pasteFromClipboard() {
         val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = clipboard.primaryClip
         if (clip == null || clip.itemCount == 0) {
@@ -150,14 +130,14 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        onConversionReady("Pasted content", convertMarkdownToHtml(text))
+        onConversionReady("Pasted content", converter.convertMarkdownToHtml(text))
     }
 
-    private fun openFilePicker() {
+    internal fun openFilePicker() {
         openFileLauncher.launch(arrayOf("text/*", "text/markdown", "*/*"))
     }
 
-    private fun loadMarkdownFile(uri: Uri) {
+    internal fun loadMarkdownFile(uri: Uri) {
         try {
             val markdown = contentResolver.openInputStream(uri)?.bufferedReader()?.use {
                 it.readText()
@@ -167,13 +147,13 @@ class MainActivity : AppCompatActivity() {
             }
 
             val fileName = uri.lastPathSegment ?: "Markdown"
-            onConversionReady(fileName, convertMarkdownToHtml(markdown))
+            onConversionReady(fileName, converter.convertMarkdownToHtml(markdown))
         } catch (e: Exception) {
             Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
-    private fun onConversionReady(subtitle: String, html: String) {
+    internal fun onConversionReady(subtitle: String, html: String) {
         lastHtml = html
         lastSubtitle = subtitle
 
@@ -191,7 +171,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showLastConversion() {
+    internal fun showLastConversion() {
         val html = lastHtml
         val subtitle = lastSubtitle
         if (html != null && subtitle != null) {
@@ -201,106 +181,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun displayHtml(subtitle: String, html: String) {
+    internal fun displayHtml(subtitle: String, html: String) {
         toolbar.subtitle = subtitle
         webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
         fabShow.visibility = View.VISIBLE
     }
 
-    private fun convertMarkdownToHtml(markdown: String): String {
-        val document = parser.parse(markdown)
-        val body = renderer.render(document)
-
-        return """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    line-height: 1.6;
-                    padding: 16px;
-                    color: #1a1a1a;
-                    max-width: 100%;
-                    word-wrap: break-word;
-                }
-                h1, h2, h3, h4, h5, h6 {
-                    margin-top: 1.2em;
-                    margin-bottom: 0.4em;
-                    color: #1a237e;
-                }
-                h1 { border-bottom: 2px solid #e0e0e0; padding-bottom: 0.3em; }
-                h2 { border-bottom: 1px solid #e0e0e0; padding-bottom: 0.2em; }
-                code {
-                    background: #f5f5f5;
-                    padding: 2px 6px;
-                    border-radius: 4px;
-                    font-size: 0.9em;
-                }
-                pre {
-                    background: #f5f5f5;
-                    padding: 12px;
-                    border-radius: 8px;
-                    overflow-x: auto;
-                }
-                pre code {
-                    padding: 0;
-                    background: none;
-                }
-                blockquote {
-                    border-left: 4px solid #1a237e;
-                    margin-left: 0;
-                    padding: 8px 16px;
-                    color: #555;
-                    background: #f9f9f9;
-                }
-                table {
-                    border-collapse: collapse;
-                    width: 100%;
-                    margin: 1em 0;
-                }
-                th, td {
-                    border: 1px solid #ddd;
-                    padding: 8px 12px;
-                    text-align: left;
-                }
-                th {
-                    background: #f0f0f0;
-                    font-weight: 600;
-                }
-                img {
-                    max-width: 100%;
-                    height: auto;
-                }
-                a {
-                    color: #1565c0;
-                }
-                hr {
-                    border: none;
-                    border-top: 1px solid #e0e0e0;
-                    margin: 1.5em 0;
-                }
-                ul, ol {
-                    padding-left: 1.5em;
-                }
-                li {
-                    margin: 0.25em 0;
-                }
-                input[type="checkbox"] {
-                    margin-right: 0.5em;
-                }
-            </style>
-        </head>
-        <body>
-            $body
-        </body>
-        </html>
-        """.trimIndent()
-    }
-
-    private fun showWelcome() {
+    internal fun showWelcome() {
         val welcomeMd = """
             # MD Convert
 
@@ -317,7 +204,7 @@ class MainActivity : AppCompatActivity() {
             - And more...
         """.trimIndent()
 
-        val html = convertMarkdownToHtml(welcomeMd)
+        val html = converter.convertMarkdownToHtml(welcomeMd)
         webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
     }
 
