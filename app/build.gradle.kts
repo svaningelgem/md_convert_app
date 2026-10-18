@@ -42,7 +42,7 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.9.3")
 
     // Markdown to HTML conversion
-    implementation("org.commonmark:commonmark:0.24.0")
+    implementation("org.commonmark:commonmark:0.30.1")
     implementation("org.commonmark:commonmark-ext-gfm-tables:0.24.0")
     implementation("org.commonmark:commonmark-ext-gfm-strikethrough:0.24.0")
     implementation("org.commonmark:commonmark-ext-autolink:0.24.0")
