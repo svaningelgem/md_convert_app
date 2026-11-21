@@ -43,7 +43,7 @@ dependencies {
 
     // Markdown to HTML conversion
     implementation("org.commonmark:commonmark:0.33.0")
-    implementation("org.commonmark:commonmark-ext-gfm-tables:0.32.0")
+    implementation("org.commonmark:commonmark-ext-gfm-tables:0.33.0")
     implementation("org.commonmark:commonmark-ext-gfm-strikethrough:0.33.0")
     implementation("org.commonmark:commonmark-ext-autolink:0.33.0")
     implementation("org.commonmark:commonmark-ext-task-list-items:0.33.0")
